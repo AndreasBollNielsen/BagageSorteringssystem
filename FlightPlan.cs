@@ -11,6 +11,13 @@ namespace BagageSorteringssystem
         private Gate departureGate;
         private string destination;
         private int maxLuggage;
+        private int indexNumber;
+
+        public int IndexNumber
+        {
+            get { return indexNumber; }
+            set { indexNumber = value; }
+        }
 
         public int MaxLuggage
         {

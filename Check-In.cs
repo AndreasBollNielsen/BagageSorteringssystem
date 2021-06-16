@@ -39,23 +39,30 @@ namespace BagageSorteringssystem
         {
             Random rand = new Random();
 
-            Monitor.Enter(Manager.CheckinBuffer);
-            try
-            {
+           
+
+
+              Monitor.Enter(Manager.CheckinBuffer);
+              try
+              {
                 if (Manager.CheckinBuffer.InternalLength > 0)
                 {
                     Luggage luggage = Manager.CheckinBuffer.Remove();
+
+                    //find the correct gate
+                    departureGate = Manager.gates[luggage.Flight.IndexNumber];
+
                     luggage.Flight.DepartureGate = departureGate;
                     Manager.GateBuffer.Add(luggage);
 
                 }
 
             }
-            finally
-            {
+              finally
+              {
 
-                Monitor.Exit(Manager.CheckinBuffer);
-            }
+                  Monitor.Exit(Manager.CheckinBuffer);
+              }
             Thread.Sleep(rand.Next(1000, 2500));
 
 
@@ -69,27 +76,45 @@ namespace BagageSorteringssystem
 
             while (myStatus == Status.open)
             {
+               /* Monitor.Enter(Manager.CheckinBuffer);
+                try
+                {
+                    if (Manager.CheckinBuffer.InternalLength > 0)
+                    {
+                        departureGate.Flight = Manager.CheckinBuffer.Inspect();
+
+                    }
+
+                   
+                }
+                finally
+                {
+                    Monitor.Enter(Manager.CheckinBuffer);
+
+                }*/
+
+
                 Monitor.Enter(departureGate);
                 try
                 {
+                    Console.WriteLine(departureGate.NumLuggage);
+                        AddToGateBuffer();
+
                     if (departureGate.NumLuggage < departureGate.Flight.MaxLuggage)
                     {
-                        AddToGateBuffer();
 
                     }
                     else
                     {
                         myStatus = Status.closed;
                     }
+
                 }
                 finally
                 {
                     Monitor.Enter(departureGate);
 
                 }
-
-
-
 
             }
 

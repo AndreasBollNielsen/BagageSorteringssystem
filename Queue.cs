@@ -62,5 +62,11 @@ namespace BagageSorteringssystem
             internalLength--;
             return luggage;
         }
+
+        public FlightPlan Inspect()
+        {
+            Luggage luggage = buffer[0];
+            return luggage.Flight;
+        }
     }
 }

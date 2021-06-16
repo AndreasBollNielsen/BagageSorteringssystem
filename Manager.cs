@@ -8,8 +8,8 @@ namespace BagageSorteringssystem
     {
         public static volatile Queue CheckinBuffer = new Queue(100);
         public static volatile Queue GateBuffer = new Queue(100);
-        public static Gate[] gates = new Gate[1];
-        public static FlightPlan[] flightPlans = new FlightPlan[1];
+        public static Gate[] gates = new Gate[2];
+        public static FlightPlan[] flightPlans = new FlightPlan[2];
         static Check_In[] checkins = new Check_In[1];
 
         //instantiate flightplan, gate & check_in
@@ -19,6 +19,7 @@ namespace BagageSorteringssystem
             for (int i = 0; i < flightPlans.Length; i++)
             {
                 FlightPlan flight = FlightGenerator();
+                flight.IndexNumber = i;
                 flightPlans[i] = flight;
 
 
@@ -30,6 +31,7 @@ namespace BagageSorteringssystem
             {
                 Gate gate = new Gate(flightPlans[j]);
                 gate.IndexNumber = j;
+                gate.GateName = GateGenerator();
                 gates[j] = gate;
             }
 
@@ -44,6 +46,7 @@ namespace BagageSorteringssystem
 
             LuggageProducer luggageProducer = new LuggageProducer();
             Sorter sorter = new Sorter();
+
             //initialize threads
             for (int i = 0; i < checkins.Length; i++)
             {
@@ -62,42 +65,55 @@ namespace BagageSorteringssystem
 
         }
 
-
+        //Run simulation
         public void RunSim()
         {
             Initialize();
+            ConsoleManager printer = new ConsoleManager();
+           
 
             while (true)
             {
+                string[] checkingBufferOutput = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
+                string[] gateBufferBufferOutput = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
+                string[] Gate1 = new string[] { " ", " ", " " };
+                string[] Gate2 = new string[] { " ", " ", " " };
+
                 //checkin buffer
-                Monitor.Enter(CheckinBuffer);
-                try
-                {
-                    Console.WriteLine("checkin buffer-------Gate_buffer-----------Flight buffer");
-                    for (int i = 0; i < CheckinBuffer.InternalLength; i++)
-                    {
-                        string output = CheckinBuffer.Buffer[i].LuggageId.ToString();
-                        Console.Write(output.PadLeft(0, ' ') + "\n");
+                /*  Monitor.Enter(CheckinBuffer);
+                  try
+                  {
+                      if (CheckinBuffer.InternalLength > 0)
+                      {
+                          for (int i = 0; i < CheckinBuffer.InternalLength; i++)
+                          {
+                              if (i < checkingBufferOutput.Length)
+                              {
+                                  checkingBufferOutput[i] = CheckinBuffer.Buffer[i].LuggageId.ToString();
 
-                    }
-                }
-                finally
-                {
+                              }
 
-                    Monitor.Exit(CheckinBuffer);
-                }
+                          }
+                      }
+
+                  }
+                  finally
+                  {
+                      Monitor.Exit(CheckinBuffer);
+
+                  }*/
 
 
                 //from checkin to gate buffer
+
                 Monitor.Enter(GateBuffer);
                 try
                 {
 
                     for (int i = 0; i < GateBuffer.InternalLength; i++)
                     {
-                        string output = GateBuffer.Buffer[i].LuggageId.ToString() + " status: " + checkins[0].MyStatus;
-                        Console.Write(output.PadLeft(25, ' ') + "\n");
-
+                        gateBufferBufferOutput[i] = GateBuffer.Buffer[i].LuggageId.ToString();
+                       
                     }
                 }
                 finally
@@ -106,13 +122,21 @@ namespace BagageSorteringssystem
                     Monitor.Exit(GateBuffer);
                 }
 
+
                 //from gate buffer to flight
                 Monitor.Enter(GateBuffer);
-
                 try
                 {
-                    string output = gates[0].NumLuggage.ToString() + "/" + gates[0].Flight.MaxLuggage + "status " + gates[0].MyStatus;
-                    Console.Write(output.PadLeft(50, ' ') + "\n");
+
+                    Gate1[0] = gates[0].GateName;
+                    Gate1[1] = gates[0].NumLuggage.ToString() + "/" + gates[0].Flight.MaxLuggage;
+                    Gate1[2] = gates[0].MyStatus.ToString();
+                    Gate2[0] = gates[1].GateName;
+                    Gate2[1] = gates[1].NumLuggage.ToString() + "/" + gates[1].Flight.MaxLuggage;
+                    Gate2[2] = gates[1].MyStatus.ToString();
+
+                    Console.WriteLine(gates[0].NumLuggage);
+
                 }
                 finally
                 {
@@ -120,8 +144,13 @@ namespace BagageSorteringssystem
                     Monitor.Exit(GateBuffer);
                 }
 
+
+                printer.PrintData(checkingBufferOutput, gateBufferBufferOutput, Gate1, Gate2);
                 Thread.Sleep(1000);
-                // Console.Clear();
+                Console.Clear();
+
+
+
             }
         }
 
@@ -141,6 +170,18 @@ namespace BagageSorteringssystem
             return flight;
 
 
+        }
+
+        //Generate a new gate name
+        string GateGenerator()
+        {
+            Random randNum = new Random();
+            string[] gates = new string[] { "A", "B", "C", "D", "E", "F" };
+            int randDest = randNum.Next(gates.Length);
+
+            string gateLetter = gates[randDest];
+            string gateName = gateLetter + randNum.Next(0, 10 + 1).ToString();
+            return gateName;
         }
     }
 }

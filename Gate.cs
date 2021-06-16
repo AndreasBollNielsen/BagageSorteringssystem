@@ -11,6 +11,13 @@ namespace BagageSorteringssystem
         private FlightPlan flight;
         private int indexnumber;
         private int numLuggage;
+        private string gatename;
+
+        public string GateName
+        {
+            get { return gatename; }
+            set { gatename = value; }
+        }
 
         public int NumLuggage
         {
@@ -69,7 +76,7 @@ namespace BagageSorteringssystem
 
                     }
 
-                    //check flight time
+                    
 
                 }
                 finally
@@ -77,7 +84,7 @@ namespace BagageSorteringssystem
                     Monitor.Exit(Manager.GateBuffer);
                 }
 
-                Thread.Sleep(rand.Next(1500, 3000));
+                Thread.Sleep(rand.Next(1500, 6000));
             }
 
             Console.WriteLine("this flight has departed");
@@ -96,12 +103,5 @@ namespace BagageSorteringssystem
            
         }
 
-        public void checkFlightSchedule()
-        {
-            if(numLuggage < flight.MaxLuggage)
-            {
-
-            }
-        }
     }
 }

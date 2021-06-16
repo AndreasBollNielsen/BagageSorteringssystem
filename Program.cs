@@ -8,11 +8,10 @@ namespace BagageSorteringssystem
         {
             Manager man = new Manager();
 
-            // man.RunSim();
+             man.RunSim();
 
 
-            ConsoleManager console = new ConsoleManager();
-            console.PrintData();
+           
 
 
             Console.Read();
