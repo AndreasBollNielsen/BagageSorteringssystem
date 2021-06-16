@@ -4,7 +4,7 @@ using System.Text;
 
 namespace BagageSorteringssystem
 {
-    class FlightPlan
+    public class FlightPlan
     {
         private DateTime departureTime;
         private string flightNumber;
@@ -42,7 +42,7 @@ namespace BagageSorteringssystem
             set { departureTime = value; }
         }
 
-        public FlightPlan(DateTime departureTime, string flightNumber, string destination,int maxLuggage)
+        public FlightPlan(DateTime departureTime, string flightNumber, string destination, int maxLuggage)
         {
             this.departureTime = departureTime;
             this.flightNumber = flightNumber;

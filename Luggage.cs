@@ -4,9 +4,16 @@ using System.Text;
 
 namespace BagageSorteringssystem
 {
-    class Luggage
+    public class Luggage
     {
         private FlightPlan flight;
+        private int luggageId;
+
+        public int LuggageId
+        {
+            get { return luggageId; }
+            set { luggageId = value; }
+        }
 
         public FlightPlan Flight
         {
@@ -14,6 +21,10 @@ namespace BagageSorteringssystem
             set { flight = value; }
         }
 
-
+        public Luggage(FlightPlan flight,int _id)
+        {
+            this.flight = flight;
+            this.luggageId = _id;
+        }
     }
 }
