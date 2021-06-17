@@ -7,8 +7,10 @@ namespace BagageSorteringssystem
         static void Main(string[] args)
         {
             Manager man = new Manager();
-
+            FlightManager flightManager = new FlightManager();
              man.RunSim();
+
+         //   flightManager.RunTime();
 
 
            

@@ -52,9 +52,9 @@ namespace BagageSorteringssystem
             set { bagagesBuffer = value; }
         }
 
-        public Gate(FlightPlan flight)
+        public Gate()
         {
-            this.flight = flight;
+            this.flight = new FlightPlan(DateTime.Now,"xxx","xxx",10);
             bagagesBuffer = new Queue(flight.MaxLuggage);
         }
 

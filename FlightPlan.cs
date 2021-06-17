@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace BagageSorteringssystem
 {
@@ -57,9 +58,30 @@ namespace BagageSorteringssystem
             this.maxLuggage = maxLuggage;
         }
 
-        public Gate GetGate()
+        public int GetGate(FlightPlan flight)
         {
-            return departureGate;
+            int gateIndex = -1;
+            for (int i = 0; i < Manager.gates.Length; i++)
+            {
+                if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber)
+                {
+                    gateIndex = i;
+                   // Console.WriteLine("found id " + i + " flight number " + flight.FlightNumber);
+                   
+                    break;
+                }
+            }
+
+         /*   Monitor.Enter(Manager.gates);
+            try
+            {
+               
+            }
+            finally
+            {
+                Monitor.Exit(Manager.gates);
+            }*/
+            return gateIndex;
         }
     }
 }

@@ -6,45 +6,37 @@ namespace BagageSorteringssystem
 {
     class ConsoleManager
     {
-        public void PrintData(string[] checkin, string[] gateBuf, string[] gate1, string[] gate2)
+        public void PrintData(ConsoleData[] data)
         {
-            Console.WriteLine("{0}{1,20}{2,20}{3,20}{4,20}", "CheckIn Buffer", "Gate Buffer", "GateName", "Luggage Counter", "Status");
-
-          
-
-           // Console.WriteLine($"{gate1[0].PadRight(80)}");
-
-            for (int i = 0; i < 10; i++)
+            //show buffer info
+            Console.WriteLine("{0}{1,20}{2,20}", "CheckIn Buffer", "Gate Buffer","Return Buffer");
+            for (int i = 0; i < data[0].checkinBuf.Length; i++)
             {
-                // Console.WriteLine("{0} {1} {2,20} {3,20}", checkin[i], gateBuf[i], gates[0], gates[1]);
-                if (checkin[i] != null)
+                if (data[0].checkinBuf != null)
                 {
-                    // padding = padding + gateBuf[i].Length;
-
-                    if (checkin[i] == null)
-                    {
-                        checkin[i] = " ";
-                    }
-
-                    if (gateBuf[i] == null)
-                    {
-                        gateBuf[i] = " ";
-                    }
-
-                    if (gate1[0] == null)
-                    {
-                        gate1[0] = " ";
-                    }
-
-                    Console.WriteLine($"{checkin[i].PadRight(20)} {gateBuf[i].PadRight(25)} {gate1[0].PadRight(12)}{gate1[1].PadRight(30)}{gate1[2].PadRight(12)}");
-                    Console.WriteLine($"{checkin[i].PadRight(20)} {gateBuf[i].PadRight(25)} {gate2[0].PadRight(12)}{gate2[1].PadRight(30)}{gate2[2].PadRight(12)}");
+                    Console.WriteLine($"{data[0].checkinBuf[i].PadRight(23)}{data[0].GateBuf[i].PadRight(25)}{data[0].ReturnBuf[i]}");
                 }
-
-
-
             }
 
-
+            //show gate & checkin info
+            Console.WriteLine("{0}{1,20}{2,20}{3,20}{4,20}", "GateName", "Check-in name", "Check-in status", "Luggage Counter", "Status");
+            for (int j = 0; j < data.Length; j++)
+            {
+                Console.WriteLine($"{data[j].GateName.PadRight(15)}{data[j].checkInName.PadRight(18)}{data[j].checkInStatus.PadRight(20)}{data[j].LuggageCounter.PadRight(29)}{data[j].GateStatus.PadRight(20)}");
+            }
         }
+    }
+
+    //data storage for debugging
+    class ConsoleData
+    {
+        public string[] checkinBuf;
+        public string[] GateBuf;
+        public string[] ReturnBuf;
+        public string GateName;
+        public string checkInName;
+        public string checkInStatus;
+        public string LuggageCounter;
+        public string GateStatus;
     }
 }

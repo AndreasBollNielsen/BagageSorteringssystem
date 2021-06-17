@@ -39,83 +39,91 @@ namespace BagageSorteringssystem
         {
             Random rand = new Random();
 
-           
-
-
-              Monitor.Enter(Manager.CheckinBuffer);
-              try
-              {
+            Monitor.Enter(Manager.CheckinBuffer);
+            try
+            {
                 if (Manager.CheckinBuffer.InternalLength > 0)
                 {
+                    
                     Luggage luggage = Manager.CheckinBuffer.Remove();
 
-                    //find the correct gate
-                    departureGate = Manager.gates[luggage.Flight.IndexNumber];
+                    
 
-                    luggage.Flight.DepartureGate = departureGate;
+                    //add luggage to gate buffer
+                    luggage.Flight.DepartureGate = Manager.gates[luggage.Flight.IndexNumber];
                     Manager.GateBuffer.Add(luggage);
+
 
                 }
 
             }
-              finally
-              {
-
-                  Monitor.Exit(Manager.CheckinBuffer);
-              }
+            finally
+            {
+                Monitor.Exit(Manager.CheckinBuffer);
+            }
             Thread.Sleep(rand.Next(1000, 2500));
 
+        }
 
-
-
-
+        public int Getgate(FlightPlan flight)
+        {
+            int gateIndex = 0;
+            Monitor.Enter(Manager.gates);
+            try
+            {
+                for (int i = 0; i < Manager.gates.Length; i++)
+                {
+                    if(Manager.gates[i].Flight.FlightNumber == flight.FlightNumber)
+                    {
+                        gateIndex = i;
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                Monitor.Exit(Manager.gates);
+            }
+            return gateIndex;
         }
 
         public void CheckLuggage()
         {
-
+            bool isRunning = false;
             while (myStatus == Status.open)
             {
-               /* Monitor.Enter(Manager.CheckinBuffer);
+             
+              //check if gate is open
+                Monitor.Enter(Manager.gates);
                 try
                 {
                     if (Manager.CheckinBuffer.InternalLength > 0)
                     {
-                        departureGate.Flight = Manager.CheckinBuffer.Inspect();
+                        FlightPlan flight = Manager.CheckinBuffer.Inspect();
+                        int index = Getgate(flight);
+                        
+                        Gate newgate = Manager.gates[index];
+                        if (newgate.MyStatus == Gate.Status.open)
+                        {
+                            // gate = newgate;
+                            isRunning = true;
+                        }
+
+                        //    Console.WriteLine(isRunning);
 
                     }
-
-                   
                 }
                 finally
                 {
-                    Monitor.Enter(Manager.CheckinBuffer);
-
-                }*/
-
-
-                Monitor.Enter(departureGate);
-                try
-                {
-                    Console.WriteLine(departureGate.NumLuggage);
-                        AddToGateBuffer();
-
-                    if (departureGate.NumLuggage < departureGate.Flight.MaxLuggage)
-                    {
-
-                    }
-                    else
-                    {
-                        myStatus = Status.closed;
-                    }
-
-                }
-                finally
-                {
-                    Monitor.Enter(departureGate);
-
+                    Monitor.Enter(Manager.gates);
                 }
 
+                //add luggage to gate if open
+                if (isRunning)
+                {
+                    AddToGateBuffer();
+
+                }
             }
 
             Console.WriteLine("no more room! closing checkin");
