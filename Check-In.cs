@@ -39,27 +39,21 @@ namespace BagageSorteringssystem
         {
             Random rand = new Random();
 
-            Monitor.Enter(Manager.CheckinBuffer);
+            Monitor.Enter(Manager.ArrivalBuffer);
             try
             {
-                if (Manager.CheckinBuffer.InternalLength > 0)
+                if (Manager.ArrivalBuffer.InternalLength > 0)
                 {
-                    
-                    Luggage luggage = Manager.CheckinBuffer.Remove();
-
-                    
-
+                    Luggage luggage = Manager.ArrivalBuffer.Remove();
                     //add luggage to gate buffer
                     luggage.Flight.DepartureGate = Manager.gates[luggage.Flight.IndexNumber];
-                    Manager.GateBuffer.Add(luggage);
-
-
+                    Manager.CheckInBuffer.Add(luggage);
                 }
 
             }
             finally
             {
-                Monitor.Exit(Manager.CheckinBuffer);
+                Monitor.Exit(Manager.ArrivalBuffer);
             }
             Thread.Sleep(rand.Next(1000, 2500));
 
@@ -97,19 +91,23 @@ namespace BagageSorteringssystem
                 Monitor.Enter(Manager.gates);
                 try
                 {
-                    if (Manager.CheckinBuffer.InternalLength > 0)
+                    if (Manager.ArrivalBuffer.InternalLength > 0)
                     {
-                        FlightPlan flight = Manager.CheckinBuffer.Inspect();
+                        FlightPlan flight = Manager.ArrivalBuffer.Inspect();
                         int index = Getgate(flight);
                         
                         Gate newgate = Manager.gates[index];
                         if (newgate.MyStatus == Gate.Status.open)
                         {
-                            // gate = newgate;
                             isRunning = true;
                         }
-
-                        //    Console.WriteLine(isRunning);
+                        else
+                        {
+                            myStatus = Status.closed;
+                            isRunning = false;
+                            Console.WriteLine("closing check in");
+                            Thread.Sleep(3000);
+                        }
 
                     }
                 }
@@ -124,9 +122,14 @@ namespace BagageSorteringssystem
                     AddToGateBuffer();
 
                 }
+                
             }
 
-            Console.WriteLine("no more room! closing checkin");
+          
+
+           // Console.WriteLine("no more room! closing checkin");
         }
+
+       
     }
 }

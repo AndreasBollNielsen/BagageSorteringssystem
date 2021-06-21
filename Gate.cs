@@ -12,6 +12,13 @@ namespace BagageSorteringssystem
         private int indexnumber;
         private int numLuggage;
         private string gatename;
+        private int gateIndex;
+
+        public int GateIndex
+        {
+            get { return gateIndex; }
+            set { gateIndex = value; }
+        }
 
         public string GateName
         {
@@ -54,54 +61,114 @@ namespace BagageSorteringssystem
 
         public Gate()
         {
-            this.flight = new FlightPlan(DateTime.Now,"xxx","xxx",10);
+            this.flight = new FlightPlan(DateTime.Now, "xxx", "xxx", 10);
             bagagesBuffer = new Queue(flight.MaxLuggage);
         }
 
-        public void AddToBuffer()
+        public void AddToBuffer(Luggage luggage)
         {
             Random rand = new Random();
             while (MyStatus == Status.open)
             {
-                Monitor.Enter(Manager.GateBuffer);
+                Monitor.Enter(bagagesBuffer);
                 try
                 {
-                    if (Manager.GateBuffer.InternalLength > 0)
+                    if (numLuggage < flight.MaxLuggage)
                     {
-                        if (bagagesBuffer.InternalLength <= flight.MaxLuggage)
-                        {
-                            Luggage luggage = Manager.GateBuffer.Remove();
-                            bagagesBuffer.Add(luggage);
-                        }
-
+                        bagagesBuffer.Add(luggage);
+                        Console.WriteLine("adding to buffer");
                     }
-
-                    
 
                 }
                 finally
                 {
-                    Monitor.Exit(Manager.GateBuffer);
+                    Monitor.Exit(bagagesBuffer);
                 }
 
-                Thread.Sleep(rand.Next(1500, 6000));
+                Thread.Sleep(rand.Next(500, 2000));
             }
 
-            Console.WriteLine("this flight has departed");
+            // Console.WriteLine("this flight has departed");
         }
 
-        public void AddLuggage(Luggage luggage)
+        //check flight departure
+        void CheckDeparture()
         {
-            if (numLuggage < flight.MaxLuggage)
-            {
-                NumLuggage++;
-            }
-            else
+            // Console.WriteLine($"current: {FlightManager.CurrentTime} departure: {flight.DepartureTime}");
+            if (FlightManager.CurrentTime.Hour == flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute == flight.DepartureTime.Minute)
             {
                 myStatus = Status.closed;
+                ResetGate();
             }
-           
+        }
+        public void ConsumeLuggage()
+        {
+            Random rand = new Random();
+            while (MyStatus == Status.open)
+            {
+                Monitor.Enter(Manager.GateBuffers[GateIndex]);
+                try
+                {
+                    if (Manager.GateBuffers[GateIndex].InternalLength > 0)
+                    {
+                        Luggage luggage = Manager.GateBuffers[GateIndex].Remove();
+                        if (numLuggage < flight.MaxLuggage)
+                        {
+                            NumLuggage++;
+                        }
+                        //close gate if flight is ready for takeoff
+                        CheckDeparture();
+                    }
+
+                    if (numLuggage >= flight.MaxLuggage)
+                    {
+                        myStatus = Status.closed;
+                        ResetGate();
+                    }
+                    Thread.Sleep(rand.Next(1000, 3000));
+
+                }
+                finally
+                {
+                    Monitor.Exit(Manager.GateBuffers[GateIndex]);
+                }
+            }
+
+            //remove index in array
+            RemoveGate();
         }
 
+        //reset gate to default 
+        void ResetGate()
+        {
+            numLuggage = 0;
+            flight = new FlightPlan(DateTime.Now, "xxx", "xxx", 10);
+        }
+        //remove available checkins
+        void RemoveGate()
+        {
+            Monitor.Enter(Manager.AvailableGates);
+            try
+            {
+                for (int i = 0; i < Manager.gates.Length; i++)
+                {
+                    if (Manager.gates[i].myStatus == Status.closed)
+                    {
+                        for (int j = 0; j < Manager.AvailableGates.Count; j++)
+                        {
+                            if (Manager.AvailableGates[j] == i)
+                            {
+                                Manager.AvailableGates.RemoveAt(j);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                Monitor.Exit(Manager.AvailableGates);
+            }
+        }
     }
 }

@@ -6,16 +6,19 @@ namespace BagageSorteringssystem
 {
     class Manager
     {
-        public static volatile Queue CheckinBuffer = new Queue(100);
-        public static volatile Queue GateBuffer = new Queue(100);
+        public static volatile Queue ArrivalBuffer = new Queue(100);
+        public static volatile Queue CheckInBuffer = new Queue(100);
         public static volatile Queue ReturnBuffer = new Queue(100);
+        public static volatile Queue[] GateBuffers = new Queue[10];
+        public static List<int> AvailableGates = new List<int>();
         public static Gate[] gates = new Gate[10];
         public static FlightPlan[] flightPlans = new FlightPlan[10];
-        static Check_In[] checkins = new Check_In[10];
-
+        public static Check_In[] checkins = new Check_In[10];
+        FlightManager flightMan = new FlightManager();
+        int LastDest;
         public static bool Isrunning;
-        int CheckinIndex = 0;
-        int GateIndex = 0;
+        // int CheckinIndex = 0;
+        //  public static int GateIndex = 0;
 
         //instantiate flightplan, gate & check_in
         public void Initialize()
@@ -27,8 +30,23 @@ namespace BagageSorteringssystem
                 flight.IndexNumber = i;
                 flightPlans[i] = flight;
 
-            }
+                //check similar destination
+                if (i > 0)
+                {
+                    if (flightPlans[i - 1].Destination == flight.Destination)
+                    {
+                        while (flightPlans[i - 1].Destination == flight.Destination)
+                        {
+                            flight.Destination = DestinationGenerator();
+                        }
+                            Console.WriteLine(flight.Destination);
+                            Thread.Sleep(1000);
+                    }
+                }
 
+                //  Console.WriteLine($"destination {flight.Destination} departure {flight.DepartureTime}");
+            }
+            Thread.Sleep(500);
             //instantiate gates
             for (int j = 0; j < gates.Length; j++)
             {
@@ -53,10 +71,12 @@ namespace BagageSorteringssystem
             //initialize threads
             Thread luggageThread = new Thread(luggageProducer.AddToBuffer);
             Thread SorterThread = new Thread(sorter.SortLuggage);
-
+            Thread flightmanThread = new Thread(flightMan.RunTime);
+            Thread flightCheckThread = new Thread(flightMan.CheckFlightsThreaded);
+            flightmanThread.Start();
+            flightCheckThread.Start();
             luggageThread.Start();
             SorterThread.Start();
-
 
 
         }
@@ -65,126 +85,19 @@ namespace BagageSorteringssystem
         public void RunSim()
         {
             Initialize();
-            //open gates
-            OpenGate();
-            OpenGate();
-            OpenGate();
-            OpenGate();
-
-            //open check in
-            OpenCheckIn();
-            OpenCheckIn();
-            OpenCheckIn();
-
             Isrunning = true;
             ConsoleManager printer = new ConsoleManager();
 
 
+
             while (Isrunning)
             {
-                //collect data from threads for debugging
-                ConsoleData[] dataStream = new ConsoleData[GateIndex];
-                for (int n = 0; n < GateIndex; n++)
-                {
-                    ConsoleData data = new ConsoleData();
-
-                    //check-In buffer
-                    Monitor.Enter(CheckinBuffer);
-                    try
-                    {
-                        if (CheckinBuffer.InternalLength > 0)
-                        {
-                            data.checkinBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
-                            for (int i = 0; i < CheckinBuffer.InternalLength; i++)
-                            {
-                                if (i < data.checkinBuf.Length)
-                                {
-                                    data.checkinBuf[i] = CheckinBuffer.Buffer[i].LuggageId.ToString();
-
-                                }
-
-                            }
-
-                        }
-                    }
-                    finally
-                    {
-                        Monitor.Exit(CheckinBuffer);
-
-                    }
-
-                    //from check-In counter
-                    Monitor.Enter(checkins[n]);
-                    try
-                    {
-                        data.checkInName = checkins[n].Name;
-                        data.checkInStatus = checkins[n].MyStatus.ToString();
-                    }
-                    finally
-                    {
-                        Monitor.Exit(checkins[n]);
-                    }
-
-                    //from check-In to gate buffer
-                    Monitor.Enter(GateBuffer);
-                    try
-                    {
-                        data.GateBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
-                        for (int i = 0; i < GateBuffer.InternalLength; i++)
-                        {
-                            if (i < data.GateBuf.Length)
-                            {
-                                data.GateBuf[i] = GateBuffer.Buffer[i].LuggageId.ToString();
-
-                            }
-                        }
-                    }
-                    finally
-                    {
-
-                        Monitor.Exit(GateBuffer);
-                    }
-
-
-                    //from gate buffer to flight
-                    Monitor.Enter(GateBuffer);
-                    try
-                    {
-                        data.GateName = gates[n].GateName;
-                        data.LuggageCounter = gates[n].NumLuggage.ToString() + "/" + gates[n].Flight.MaxLuggage;
-                        data.GateStatus = gates[n].MyStatus.ToString();
-                        data.ReturnBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
-
-                        
-                    }
-                    finally
-                    {
-
-                        Monitor.Exit(GateBuffer);
-                    }
-
-                    //from sorter buffer to return buffer
-                    if (ReturnBuffer.InternalLength > 0)
-                    {
-                        for (int i = 0; i < ReturnBuffer.InternalLength; i++)
-                        {
-                            if (i < data.ReturnBuf.Length)
-                            {
-                                data.ReturnBuf[i] = ReturnBuffer.Buffer[i].LuggageId.ToString();
-
-                            }
-
-                        }
-
-                    }
-
-                    dataStream[n] = data;
-                }
+                //  flightMan.CheckFlights();
 
                 //execute a print job
-                printer.PrintData(dataStream);
-                Thread.Sleep(500);
-                Console.Clear();
+                printer.PrintData();
+                Thread.Sleep(1000);
+                  Console.Clear();
             }
         }
 
@@ -192,12 +105,12 @@ namespace BagageSorteringssystem
         FlightPlan FlightGenerator()
         {
             Random randNum = new Random();
-            string[] destinations = new string[] { "London", "copenhagen", "Amsterdam", "Bruxelles", "Florida", "Helsinki" };
-            int randDest = randNum.Next(destinations.Length);
-            DateTime depart = DateTime.Today.AddHours(randNum.Next(24));
-            string destination = destinations[randDest];
+            //  string[] destinations = new string[] { "London", "copenhagen", "Amsterdam", "Bruxelles", "Florida", "Helsinki" };
+            //   int randDest = randNum.Next(destinations.Length);
+            DateTime depart = DateTime.Now.AddHours(randNum.Next(2, 12));
+            string destination = DestinationGenerator();
             string flightNumber = destination[0] + randNum.Next(1000, 10000).ToString();
-            int maxLuggage = randNum.Next(2, 10);
+            int maxLuggage = randNum.Next(10, 100);
 
 
             FlightPlan flight = new FlightPlan(depart, flightNumber, destination, maxLuggage);
@@ -218,53 +131,22 @@ namespace BagageSorteringssystem
             return gateName;
         }
 
-        //Generate a new Airline name
-        string AirlineGenerator()
+        //Generate a new destination
+        string DestinationGenerator()
         {
             Random randNum = new Random();
-            string[] airLines = new string[] { "SAS", "Ryanair", "LuftHansa", "EasyJet", "Virgin Atlanta", "Luxair" };
-            int randAirline = randNum.Next(airLines.Length);
+            string[] destinations = new string[] { "London", "copenhagen", "Amsterdam", "Bruxelles", "Florida", "Helsinki" };
+            int randDest = randNum.Next(destinations.Length);
 
-            string airLineName = airLines[randAirline];
-            return airLineName;
-        }
-
-        //open a new checkin
-        public void OpenGate()
-        {
-            Random rand = new Random();
-            for (int i = 0; i < gates.Length; i++)
+            //select a new number if same as last time
+            while (randDest == LastDest)
             {
-                if (gates[i].MyStatus == Gate.Status.closed)
-                {
-                    gates[i].MyStatus = Gate.Status.open;
-                    int randomFlight = rand.Next(flightPlans.Length);
-                    gates[i].Flight = flightPlans[randomFlight];
-                    Console.WriteLine("new flight arrived");
-                    Console.WriteLine(gates[i].Flight.FlightNumber + " from flightplans " + flightPlans[randomFlight].FlightNumber);
-                    GateIndex++;
-                    Thread.Sleep(1000);
-                    return;
-                }
+                randDest = randNum.Next(destinations.Length);
             }
+            string destination = destinations[randDest];
+            randDest = LastDest;
+            return destination;
         }
 
-        //open new CheckIn
-        public void OpenCheckIn()
-        {
-            for (int i = 0; i < checkins.Length; i++)
-            {
-                if (checkins[i].MyStatus == Check_In.Status.closed)
-                {
-                    checkins[i].MyStatus = Check_In.Status.open;
-                    checkins[i].Name = AirlineGenerator();
-                    Thread checkinThread = new Thread(checkins[i].CheckLuggage);
-                    checkinThread.Start();
-                    Console.WriteLine("open check-in");
-                    Thread.Sleep(1000);
-                    return;
-                }
-            }
-        }
     }
 }

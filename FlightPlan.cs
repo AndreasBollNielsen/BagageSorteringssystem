@@ -63,24 +63,21 @@ namespace BagageSorteringssystem
             int gateIndex = -1;
             for (int i = 0; i < Manager.gates.Length; i++)
             {
-                if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber)
+                if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber /*|| Manager.gates[i].Flight.destination == flight.destination*/)
                 {
-                    gateIndex = i;
-                   // Console.WriteLine("found id " + i + " flight number " + flight.FlightNumber);
-                   
-                    break;
+                    if(Manager.gates[i].MyStatus == Gate.Status.open)
+                    {
+                        gateIndex = i;
+                        // Console.WriteLine("found id " + i + " flight number " + flight.FlightNumber);
+                        return gateIndex;
+                        //break;
+                    }
+
                 }
+              
             }
 
-         /*   Monitor.Enter(Manager.gates);
-            try
-            {
-               
-            }
-            finally
-            {
-                Monitor.Exit(Manager.gates);
-            }*/
+         
             return gateIndex;
         }
     }
