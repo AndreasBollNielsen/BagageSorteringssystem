@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
@@ -8,6 +9,14 @@ namespace BagageSorteringssystem
     public class FlightPlan
     {
         private DateTime departureTime;
+        private DateTime arrivalTime;
+
+        public DateTime ArrivalTime
+        {
+            get { return arrivalTime; }
+            set { arrivalTime = value; }
+        }
+
         private string flightNumber;
         private Gate departureGate;
         private string destination;
@@ -50,28 +59,38 @@ namespace BagageSorteringssystem
             set { departureTime = value; }
         }
 
-        public FlightPlan(DateTime departureTime, string flightNumber, string destination, int maxLuggage)
+        public FlightPlan(DateTime departureTime,DateTime arrivaltime, string flightNumber, string destination, int maxLuggage)
         {
             this.departureTime = departureTime;
             this.flightNumber = flightNumber;
             this.destination = destination;
             this.maxLuggage = maxLuggage;
+            this.arrivalTime = arrivaltime;
         }
 
-        public int GetGate(FlightPlan flight)
+        public int GetGate(FlightPlan flight,bool statusCheck)
         {
             int gateIndex = -1;
             for (int i = 0; i < Manager.gates.Length; i++)
             {
-                if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber /*|| Manager.gates[i].Flight.destination == flight.destination*/)
+                if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber || Manager.gates[i].Flight.destination == flight.destination)
                 {
-                    if(Manager.gates[i].MyStatus == Gate.Status.open)
+                      //   Debug.WriteLine("found id " + i + " flight number " + flight.FlightNumber + " gate status " + Manager.gates[i].MyStatus);
+                    if(statusCheck)
+                    {
+                        if (Manager.gates[i].MyStatus == Gate.Status.open)
+                        {
+                            gateIndex = i;
+                            return gateIndex;
+                           
+                        }
+                    }
+                    else
                     {
                         gateIndex = i;
-                        // Console.WriteLine("found id " + i + " flight number " + flight.FlightNumber);
                         return gateIndex;
-                        //break;
                     }
+                   
 
                 }
               

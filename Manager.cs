@@ -6,21 +6,22 @@ namespace BagageSorteringssystem
 {
     class Manager
     {
-        public static volatile Queue ArrivalBuffer = new Queue(100);
-        public static volatile Queue CheckInBuffer = new Queue(100);
-        public static volatile Queue ReturnBuffer = new Queue(100);
-        public static volatile Queue[] GateBuffers = new Queue[10];
+        public static Queue ArrivalBuffer = new Queue(100);
+        public static Queue CheckInBuffer = new Queue(1000);
+        public static Queue ReturnBuffer = new Queue(100);
+        public static Queue[] GateBuffers = new Queue[10];
         public static List<int> AvailableGates = new List<int>();
         public static Gate[] gates = new Gate[10];
         public static FlightPlan[] flightPlans = new FlightPlan[10];
         public static Check_In[] checkins = new Check_In[10];
-        FlightManager flightMan = new FlightManager();
-        int LastDest;
-        public static bool Isrunning;
-        // int CheckinIndex = 0;
-        //  public static int GateIndex = 0;
 
-        //instantiate flightplan, gate & check_in
+        public FlightManager flightMan = new FlightManager();
+        public LuggageProducer luggageProducer = new LuggageProducer();
+        public Sorter sorter = new Sorter();
+        int lastDest;
+        public bool Isrunning;
+        public EventHandler InitializationHandler;
+
         public void Initialize()
         {
             //instantiate flightplans
@@ -39,14 +40,15 @@ namespace BagageSorteringssystem
                         {
                             flight.Destination = DestinationGenerator();
                         }
-                            Console.WriteLine(flight.Destination);
-                            Thread.Sleep(1000);
+                        Console.WriteLine(flight.Destination);
+                        //  Thread.Sleep(1000);
                     }
                 }
 
                 //  Console.WriteLine($"destination {flight.Destination} departure {flight.DepartureTime}");
             }
-            Thread.Sleep(500);
+            // Thread.Sleep(500);
+
             //instantiate gates
             for (int j = 0; j < gates.Length; j++)
             {
@@ -65,8 +67,11 @@ namespace BagageSorteringssystem
                 checkins[n] = check_In;
             }
 
-            LuggageProducer luggageProducer = new LuggageProducer();
-            Sorter sorter = new Sorter();
+
+            flightMan.IsRunning = true;
+
+            //send empty event 
+            InitializationHandler?.Invoke(this, new EventArgs());
 
             //initialize threads
             Thread luggageThread = new Thread(luggageProducer.AddToBuffer);
@@ -77,7 +82,6 @@ namespace BagageSorteringssystem
             flightCheckThread.Start();
             luggageThread.Start();
             SorterThread.Start();
-
 
         }
 
@@ -92,12 +96,11 @@ namespace BagageSorteringssystem
 
             while (Isrunning)
             {
-                //  flightMan.CheckFlights();
-
                 //execute a print job
                 printer.PrintData();
-                Thread.Sleep(1000);
-                  Console.Clear();
+             //   Console.Clear();
+
+
             }
         }
 
@@ -105,15 +108,15 @@ namespace BagageSorteringssystem
         FlightPlan FlightGenerator()
         {
             Random randNum = new Random();
-            //  string[] destinations = new string[] { "London", "copenhagen", "Amsterdam", "Bruxelles", "Florida", "Helsinki" };
-            //   int randDest = randNum.Next(destinations.Length);
-            DateTime depart = DateTime.Now.AddHours(randNum.Next(2, 12));
+            
+            DateTime depart = DateTime.Now.AddHours(randNum.Next(2, 4));
+            DateTime arrival = depart.AddHours(-1);
             string destination = DestinationGenerator();
             string flightNumber = destination[0] + randNum.Next(1000, 10000).ToString();
             int maxLuggage = randNum.Next(10, 100);
 
 
-            FlightPlan flight = new FlightPlan(depart, flightNumber, destination, maxLuggage);
+            FlightPlan flight = new FlightPlan(depart, arrival, flightNumber, destination, maxLuggage);
             return flight;
 
 
@@ -139,12 +142,12 @@ namespace BagageSorteringssystem
             int randDest = randNum.Next(destinations.Length);
 
             //select a new number if same as last time
-            while (randDest == LastDest)
+            while (randDest == lastDest)
             {
                 randDest = randNum.Next(destinations.Length);
             }
             string destination = destinations[randDest];
-            randDest = LastDest;
+            randDest = lastDest;
             return destination;
         }
 

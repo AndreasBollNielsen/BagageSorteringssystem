@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace BagageSorteringssystem
@@ -40,10 +41,9 @@ namespace BagageSorteringssystem
         {
             //  Console.WriteLine(luggage.Flight.FlightNumber);
             //move all elements in array
-            if (internalLength > 0)
+            if (internalLength >= length)
             {
-               
-
+                Debug.WriteLine("buffer exeeded " + buffer[0].Flight.IndexNumber);
             }
 
             buffer[internalLength] = luggage;

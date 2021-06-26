@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-
+using System.Diagnostics;
 namespace BagageSorteringssystem
 {
     public class Gate
@@ -13,7 +13,8 @@ namespace BagageSorteringssystem
         private int numLuggage;
         private string gatename;
         private int gateIndex;
-
+        public EventHandler luggageHandler;
+        public EventHandler GateStatusHandler;
         public int GateIndex
         {
             get { return gateIndex; }
@@ -61,11 +62,13 @@ namespace BagageSorteringssystem
 
         public Gate()
         {
-            this.flight = new FlightPlan(DateTime.Now, "xxx", "xxx", 10);
+            this.flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
             bagagesBuffer = new Queue(flight.MaxLuggage);
         }
 
-        public void AddToBuffer(Luggage luggage)
+
+
+      /*  public void AddToBuffer(Luggage luggage)
         {
             Random rand = new Random();
             while (MyStatus == Status.open)
@@ -77,6 +80,7 @@ namespace BagageSorteringssystem
                     {
                         bagagesBuffer.Add(luggage);
                         Console.WriteLine("adding to buffer");
+                        
                     }
 
                 }
@@ -84,21 +88,22 @@ namespace BagageSorteringssystem
                 {
                     Monitor.Exit(bagagesBuffer);
                 }
-
                 Thread.Sleep(rand.Next(500, 2000));
             }
 
             // Console.WriteLine("this flight has departed");
-        }
+        }*/
 
         //check flight departure
         void CheckDeparture()
         {
             // Console.WriteLine($"current: {FlightManager.CurrentTime} departure: {flight.DepartureTime}");
-            if (FlightManager.CurrentTime.Hour == flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute == flight.DepartureTime.Minute)
+            if (FlightManager.CurrentTime.Hour >= flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute >= flight.DepartureTime.Minute)
             {
+
                 myStatus = Status.closed;
-                ResetGate();
+              //  ResetGate();
+
             }
         }
         public void ConsumeLuggage()
@@ -106,18 +111,24 @@ namespace BagageSorteringssystem
             Random rand = new Random();
             while (MyStatus == Status.open)
             {
-                Monitor.Enter(Manager.GateBuffers[GateIndex]);
+
+                Queue buffer = Manager.GateBuffers[GateIndex];
+                Monitor.Enter(buffer);
                 try
                 {
-                    if (Manager.GateBuffers[GateIndex].InternalLength > 0)
+                    if (buffer.InternalLength > 0)
                     {
-                        Luggage luggage = Manager.GateBuffers[GateIndex].Remove();
+                        Luggage luggage = buffer.Remove();
                         if (numLuggage < flight.MaxLuggage)
                         {
                             NumLuggage++;
+
+                            luggageHandler?.Invoke(this, new GateEventArgs(NumLuggage, flight.MaxLuggage, MyStatus, GateIndex));
                         }
                         //close gate if flight is ready for takeoff
                         CheckDeparture();
+
+
                     }
 
                     if (numLuggage >= flight.MaxLuggage)
@@ -125,12 +136,12 @@ namespace BagageSorteringssystem
                         myStatus = Status.closed;
                         ResetGate();
                     }
-                    Thread.Sleep(rand.Next(1000, 3000));
+                   Thread.Sleep(rand.Next(500, 2000));
 
                 }
                 finally
                 {
-                    Monitor.Exit(Manager.GateBuffers[GateIndex]);
+                    Monitor.Exit(buffer);
                 }
             }
 
@@ -142,8 +153,10 @@ namespace BagageSorteringssystem
         void ResetGate()
         {
             numLuggage = 0;
-            flight = new FlightPlan(DateTime.Now, "xxx", "xxx", 10);
+            flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
+            GateStatusHandler?.Invoke(this, new GateEventArgs(0, 0, MyStatus, gateIndex));
         }
+
         //remove available checkins
         void RemoveGate()
         {

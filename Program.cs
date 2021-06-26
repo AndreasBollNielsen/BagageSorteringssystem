@@ -7,9 +7,9 @@ namespace BagageSorteringssystem
         static void Main(string[] args)
         {
             Manager man = new Manager();
-          
+
             man.RunSim();
-           
+
 
 
 
