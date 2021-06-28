@@ -18,10 +18,9 @@ namespace BagageSorteringssystem
                 {
                     for (int i = 0; i < data[0].checkinBuf.Length; i++)
                     {
-                        if (data[0].checkinBuf != null)
-                        {
-                            Console.WriteLine($"{data[0].checkinBuf[i].PadRight(23)}{data[0].GateBuf[i].PadRight(25)}{data[0].ReturnBuf[i]}");
-                        }
+
+                        Console.WriteLine($"{data[0].checkinBuf[i].PadRight(23)}{data[0].GateBuf[i].PadRight(25)}{data[0].ReturnBuf[i]}");
+
                     }
                 }
             }
@@ -31,23 +30,38 @@ namespace BagageSorteringssystem
             Console.WriteLine($"Checkin buffer size: {data[0].CheckInLength}");
             Console.WriteLine($"return buffer size: {data[0].ReturnBufLength}");
             //show gate & checkin info
-            Console.WriteLine("{0}{1,20}{2,20}{3,20}{4,20}{5,20}{6,20}", "Check-in name", "Check-in status", "Luggage Counter", "GateName", "Gate Status", "destination", "BufferSize");
+            Console.WriteLine("{0}{1,20}{2,20}{3,20}{4,20}{5,20}", "Check-in name", "Check-in status", "Luggage Counter", "GateName", "Gate Status", "destination");
             for (int j = 0; j < data.Length; j++)
             {
-                Console.WriteLine($"{data[j].checkInName.PadRight(18)}{data[j].checkInStatus.PadRight(20)}{data[j].LuggageCounter.PadRight(29)}{data[j].GateName.PadRight(15)}{data[j].GateStatus.PadRight(20)}{data[j].Destination.PadRight(20)}{data[j].GateBufferLnegth}");
+                Console.WriteLine($"{data[j].checkInName.PadRight(18)}{data[j].checkInStatus.PadRight(20)}{data[j].LuggageCounter.PadRight(29)}{data[j].GateName.PadRight(15)}{data[j].GateStatus.PadRight(20)}{data[j].Destination.PadRight(20)}");
             }
 
 
-            Thread.Sleep(1000);
+
         }
 
         ConsoleData[] CollectData()
         {
             //collect data from threads for debugging
             ConsoleData[] dataStream = new ConsoleData[Manager.gates.Length];
+            int bufferlength = 50;
+            //  bufferlength = GetlargestBufferSize();
+
+
             for (int n = 0; n < Manager.gates.Length; n++)
             {
                 ConsoleData data = new ConsoleData();
+                data.checkinBuf = new string[bufferlength];
+                data.GateBuf = new string[bufferlength];
+                data.ReturnBuf = new string[bufferlength];
+
+                //initialize space in buffers
+                for (int i = 0; i < data.checkinBuf.Length; i++)
+                {
+                    data.checkinBuf[i] = " ";
+                    data.GateBuf[i] = " ";
+                    data.ReturnBuf[i] = " ";
+                }
 
                 //check-In buffer
                 Monitor.Enter(Manager.ArrivalBuffer);
@@ -55,7 +69,6 @@ namespace BagageSorteringssystem
                 {
                     if (Manager.ArrivalBuffer.InternalLength > 0)
                     {
-                        data.checkinBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
                         for (int i = 0; i < Manager.ArrivalBuffer.InternalLength; i++)
                         {
                             if (i < data.checkinBuf.Length)
@@ -90,7 +103,6 @@ namespace BagageSorteringssystem
                 Monitor.Enter(Manager.CheckInBuffer);
                 try
                 {
-                    data.GateBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
                     data.CheckInLength = Manager.CheckInBuffer.InternalLength;
                     for (int i = 0; i < Manager.CheckInBuffer.InternalLength; i++)
                     {
@@ -116,7 +128,6 @@ namespace BagageSorteringssystem
                     data.LuggageCounter = Manager.gates[n].NumLuggage.ToString() + "/" + Manager.gates[n].Flight.MaxLuggage;
                     data.GateStatus = Manager.gates[n].MyStatus.ToString();
                     data.Destination = Manager.gates[n].Flight.Destination;
-                    data.ReturnBuf = new string[] { " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
 
                 }
                 finally
@@ -126,41 +137,92 @@ namespace BagageSorteringssystem
                 }
 
                 //from sorter buffer to return buffer
-                if (Manager.ReturnBuffer.InternalLength > 0)
+              /*  Monitor.Enter(Manager.ReturnBuffer);
+                try
                 {
-                    data.ReturnBufLength = Manager.ReturnBuffer.InternalLength;
-                    for (int i = 0; i < Manager.ReturnBuffer.InternalLength; i++)
+                    if (Manager.ReturnBuffer.InternalLength > 0)
                     {
-                        if (i < data.ReturnBuf.Length)
+                        data.ReturnBufLength = Manager.ReturnBuffer.InternalLength;
+                        for (int i = 0; i < Manager.ReturnBuffer.InternalLength; i++)
                         {
-                            data.ReturnBuf[i] = Manager.ReturnBuffer.Buffer[i].Flight.Destination.ToString();
+                            if (i < data.ReturnBuf.Length)
+                            {
+                                if (Manager.ReturnBuffer != null)
+                                    data.ReturnBuf[i] = Manager.ReturnBuffer.Buffer[i].Flight.Destination.ToString();
+
+                            }
 
                         }
 
                     }
-
                 }
-
-                // from GatesBuffer 
-               /* if (Manager.GateBuffers[n] != null)
+                finally
                 {
-                    Monitor.Enter(Manager.GateBuffers[n]);
-                    try
-                    {
-                        data.GateBufferLnegth = Manager.GateBuffers[n].InternalLength;
-                    }
-                    finally
-                    {
-
-                        Monitor.Exit(Manager.GateBuffers[n]);
-                    }
+                    Monitor.Exit(Manager.ReturnBuffer);
                 }*/
-
-
+               
                 dataStream[n] = data;
             }
 
             return dataStream;
+        }
+
+        int GetlargestBufferSize()
+        {
+            int[] bufferslength = new int[3];
+
+            int returnlength = 0;
+            //arrival buffer
+            Monitor.Enter(Manager.ArrivalBuffer);
+            try
+            {
+                bufferslength[0] = Manager.ArrivalBuffer.InternalLength;
+            }
+            finally
+            {
+
+                Monitor.Exit(Manager.ArrivalBuffer);
+            }
+
+            //return buffer
+            Monitor.Enter(Manager.ReturnBuffer);
+            try
+            {
+                bufferslength[1] = Manager.ReturnBuffer.InternalLength;
+
+            }
+            finally
+            {
+                Monitor.Exit(Manager.ReturnBuffer);
+
+            }
+
+            //checkin buffer
+            Monitor.Enter(Manager.CheckInBuffer);
+            try
+            {
+                bufferslength[2] = Manager.CheckInBuffer.InternalLength;
+
+            }
+            finally
+            {
+                Monitor.Exit(Manager.CheckInBuffer);
+
+            }
+
+
+
+
+            //get the largest number in array
+            for (int i = 0; i < bufferslength.Length - 1; i++)
+            {
+                if (bufferslength[i] > bufferslength[i + 1])
+                {
+                    returnlength = bufferslength[i];
+                }
+            }
+
+            return returnlength;
         }
     }
 
@@ -178,7 +240,7 @@ namespace BagageSorteringssystem
         public string Destination;
         public int ArrivalBufLength;
         public int ReturnBufLength;
-        public int GateBufferLnegth;
+
         public int CheckInLength;
     }
 }

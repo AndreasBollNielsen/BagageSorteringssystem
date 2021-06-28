@@ -7,6 +7,20 @@ namespace BagageSorteringssystem
     class FlightPlanEventArgs: EventArgs
     {
         private int index;
+        private string gateName;
+        private string flightStatus;
+
+        public string FlightStatus
+        {
+            get { return flightStatus; }
+            set { flightStatus = value; }
+        }
+
+        public string GateName
+        {
+            get { return gateName; }
+            set { gateName = value; }
+        }
 
         public int Index
         {
@@ -16,10 +30,11 @@ namespace BagageSorteringssystem
 
 
 
-        public FlightPlanEventArgs(int index)
+        public FlightPlanEventArgs(int index,string _gataName,string _status)
         {
             this.index = index;
-
+            this.gateName = _gataName;
+            this.flightStatus = _status;
         }
     }
 }

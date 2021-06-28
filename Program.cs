@@ -10,12 +10,6 @@ namespace BagageSorteringssystem
 
             man.RunSim();
 
-
-
-
-
-
-
             Console.Read();
         }
     }

@@ -13,8 +13,17 @@ namespace BagageSorteringssystem
         private int numLuggage;
         private string gatename;
         private int gateIndex;
+        private int timeFactor;
+
+        public int TimeFactor
+        {
+            get { return timeFactor; }
+            set { timeFactor = value; }
+        }
+
         public EventHandler luggageHandler;
         public EventHandler GateStatusHandler;
+        public EventHandler FlightStatusHandler;
         public int GateIndex
         {
             get { return gateIndex; }
@@ -64,47 +73,54 @@ namespace BagageSorteringssystem
         {
             this.flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
             bagagesBuffer = new Queue(flight.MaxLuggage);
+            this.timeFactor = 1;
         }
 
 
 
-      /*  public void AddToBuffer(Luggage luggage)
-        {
-            Random rand = new Random();
-            while (MyStatus == Status.open)
-            {
-                Monitor.Enter(bagagesBuffer);
-                try
-                {
-                    if (numLuggage < flight.MaxLuggage)
-                    {
-                        bagagesBuffer.Add(luggage);
-                        Console.WriteLine("adding to buffer");
-                        
-                    }
+        /*  public void AddToBuffer(Luggage luggage)
+          {
+              Random rand = new Random();
+              while (MyStatus == Status.open)
+              {
+                  Monitor.Enter(bagagesBuffer);
+                  try
+                  {
+                      if (numLuggage < flight.MaxLuggage)
+                      {
+                          bagagesBuffer.Add(luggage);
+                          Console.WriteLine("adding to buffer");
 
-                }
-                finally
-                {
-                    Monitor.Exit(bagagesBuffer);
-                }
-                Thread.Sleep(rand.Next(500, 2000));
-            }
+                      }
 
-            // Console.WriteLine("this flight has departed");
-        }*/
+                  }
+                  finally
+                  {
+                      Monitor.Exit(bagagesBuffer);
+                  }
+                  Thread.Sleep(rand.Next(500, 2000));
+              }
+
+              // Console.WriteLine("this flight has departed");
+          }*/
 
         //check flight departure
         void CheckDeparture()
         {
+           
+
             // Console.WriteLine($"current: {FlightManager.CurrentTime} departure: {flight.DepartureTime}");
-            if (FlightManager.CurrentTime.Hour >= flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute >= flight.DepartureTime.Minute)
+         //   Debug.WriteLine("current time: " + FlightManager.CurrentTime + " departure time: " + flight.DepartureTime + " arrival time: " + flight.ArrivalTime);
+            if(FlightManager.CurrentTime.Day == flight.DepartureTime.Day)
             {
+                if (FlightManager.CurrentTime.Hour >= flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute >= flight.DepartureTime.Minute)
+                {
+                    myStatus = Status.closed;
+                    ResetGate();
 
-                myStatus = Status.closed;
-              //  ResetGate();
-
+                }
             }
+           
         }
         public void ConsumeLuggage()
         {
@@ -136,7 +152,9 @@ namespace BagageSorteringssystem
                         myStatus = Status.closed;
                         ResetGate();
                     }
-                   Thread.Sleep(rand.Next(500, 2000));
+                    int delay = rand.Next(250, 800);
+                   
+                    Thread.Sleep(delay / timeFactor);
 
                 }
                 finally
@@ -146,42 +164,59 @@ namespace BagageSorteringssystem
             }
 
             //remove index in array
-            RemoveGate();
+            //   RemoveGate();
+            Manager.AvailableGates -= 1;
+             Thread.Sleep(500);
         }
 
         //reset gate to default 
         void ResetGate()
         {
             numLuggage = 0;
-            flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
             GateStatusHandler?.Invoke(this, new GateEventArgs(0, 0, MyStatus, gateIndex));
+            FlightStatusHandler?.Invoke(flight, new FlightPlanEventArgs(flight.IndexNumber, " ", "Departed"));
+            flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
         }
 
-        //remove available checkins
-        void RemoveGate()
-        {
-            Monitor.Enter(Manager.AvailableGates);
-            try
-            {
-                for (int i = 0; i < Manager.gates.Length; i++)
-                {
-                    if (Manager.gates[i].myStatus == Status.closed)
-                    {
-                        for (int j = 0; j < Manager.AvailableGates.Count; j++)
-                        {
-                            if (Manager.AvailableGates[j] == i)
-                            {
-                                Manager.AvailableGates.RemoveAt(j);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                Monitor.Exit(Manager.AvailableGates);
-            }
-        }
+        //remove available gates
+        //void RemoveGate()
+        //{
+        //    Monitor.Enter(Manager.AvailableGates);
+        //    try
+        //    {
+        //        for (int i = 0; i < Manager.gates.Length; i++)
+        //        {
+        //            Monitor.Enter(Manager.gates[i]);
+        //            try
+        //            {
+        //                if (Manager.gates[i].myStatus == Status.closed)
+        //                {
+        //                    for (int j = 0; j < Manager.AvailableGates; j++)
+        //                    {
+        //                        if (Manager.AvailableGates[j] == i)
+        //                        {
+        //                            if (Manager.AvailableGates.Count > 1)
+        //                            {
+        //                                Manager.AvailableGates.RemoveAt(j);
+        //                                break;
+        //                            }
+
+        //                        }
+        //                    }
+        //                }
+
+        //            }
+        //            finally
+        //            {
+        //                Monitor.Exit(Manager.gates[i]);
+        //            }
+
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        Monitor.Exit(Manager.AvailableGates);
+        //    }
+        //}
     }
 }

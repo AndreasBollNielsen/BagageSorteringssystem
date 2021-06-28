@@ -10,6 +10,13 @@ namespace BagageSorteringssystem
     {
         private DateTime departureTime;
         private DateTime arrivalTime;
+        private string status;
+
+        public string Status
+        {
+            get { return status; }
+            set { status = value; }
+        }
 
         public DateTime ArrivalTime
         {
@@ -66,6 +73,7 @@ namespace BagageSorteringssystem
             this.destination = destination;
             this.maxLuggage = maxLuggage;
             this.arrivalTime = arrivaltime;
+            this.status = "closed";
         }
 
         public int GetGate(FlightPlan flight,bool statusCheck)

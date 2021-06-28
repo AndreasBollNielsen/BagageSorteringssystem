@@ -44,22 +44,47 @@ namespace BagageSorteringssystem
             {
                 //random choose which buffer to take from
                 int chooser = rand.Next(2);
-                //  chooser = 1;
 
+                // if returnbuffer is empty don´t use it
+                if (!checkReturnbuffer())
+                {
+                    chooser = 1;
+                }
 
                 if (chooser > 0)
                 {
                     SortByGate();
+                    //Debug.WriteLine("sorting by gate");
                 }
                 //sort from return buffers
                 else
                 {
                     SortByReturn();
+                    //Debug.WriteLine("sorting by return buffer");
                 }
 
 
-                Thread.Sleep(rand.Next(100, 600));
+                Thread.Sleep(rand.Next(10, 60));
             }
+        }
+
+        //check if returnbuffer contains content
+        bool checkReturnbuffer()
+        {
+            Monitor.Enter(Manager.ReturnBuffer);
+            try
+            {
+                if (Manager.ReturnBuffer.InternalLength > 0)
+                {
+                    return true;
+                }
+            }
+            finally
+            {
+                Monitor.Exit(Manager.ReturnBuffer);
+            }
+
+            return false;
         }
 
         void SortByGate()
@@ -111,7 +136,7 @@ namespace BagageSorteringssystem
                     }
                     else
                     {
-                        Debug.WriteLine("index was not valid");
+                        // Debug.WriteLine("index was not valid");
                         AddToReturnBuffer(luggage);
                     }
                 }
@@ -129,51 +154,50 @@ namespace BagageSorteringssystem
             {
                 if (Manager.ReturnBuffer.InternalLength > 0)
                 {
-                    if (bagagesBuffer.InternalLength < bagagesBuffer.Length)
-                    {
-                        //get luggage from return buffer
-                        Luggage luggage = Manager.ReturnBuffer.Remove();
-                        int index = luggage.Flight.GetGate(luggage.Flight, false);
 
-                        //check if index is valid
-                        if (index >= 0)
+                    //get luggage from return buffer
+                    Luggage luggage = Manager.ReturnBuffer.Remove();
+                    int index = luggage.Flight.GetGate(luggage.Flight, false);
+
+                    //check if index is valid
+                    if (index >= 0)
+                    {
+                        //check if gate is open
+                        Monitor.Enter(Manager.gates[index]);
+                        try
                         {
-                            //check if gate is open
-                            Monitor.Enter(Manager.gates[index]);
-                            try
+                            //Add luggage to gate buffer if open
+                            if (Manager.gates[index].NumLuggage < Manager.gates[index].Flight.MaxLuggage)
                             {
-                                //Add luggage to gate buffer if open
-                                if (Manager.gates[index].NumLuggage < Manager.gates[index].Flight.MaxLuggage)
+                                Monitor.Enter(Manager.GateBuffers[index]);
+                                try
                                 {
-                                    Monitor.Enter(Manager.GateBuffers[index]);
-                                    try
-                                    {
-                                        Manager.GateBuffers[index].Add(luggage);
-                                    }
-                                    finally
-                                    {
-                                        Monitor.Exit(Manager.GateBuffers[index]);
-                                    }
+                                    Manager.GateBuffers[index].Add(luggage);
                                 }
-                                //add to return buffer if gate closed
-                                else
+                                finally
                                 {
-                                    AddToReturnBuffer(luggage);
+                                    Monitor.Exit(Manager.GateBuffers[index]);
                                 }
                             }
-                            finally
+                            //add to return buffer if gate closed
+                            else
                             {
-
-                                Monitor.Exit(Manager.gates[index]);
+                                AddToReturnBuffer(luggage);
                             }
                         }
-                        //return the luggage if no gates available
-                        else
+                        finally
                         {
-                            Debug.WriteLine("no gates available");
-                            Manager.ReturnBuffer.Add(luggage);
+
+                            Monitor.Exit(Manager.gates[index]);
                         }
                     }
+                    //return the luggage if no gates available
+                    else
+                    {
+                        //Debug.WriteLine("no gates available");
+                        Manager.ReturnBuffer.Add(luggage);
+                    }
+
                 }
             }
             finally

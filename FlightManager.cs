@@ -7,8 +7,9 @@ namespace BagageSorteringssystem
 {
     class FlightManager
     {
+
         public static DateTime CurrentTime = DateTime.Now;
-        public static float TimeFactor = 10;
+        public float TimeFactor = 10;
         public EventHandler TimeHandler;
         public EventHandler[] Checkinhandler = new EventHandler[10];
         public EventHandler[] Gatehandler = new EventHandler[10];
@@ -18,8 +19,9 @@ namespace BagageSorteringssystem
         {
             while (IsRunning)
             {
-                // CurrentTime = CurrentTime.AddMinutes(TimeFactor);
                 CurrentTime = CurrentTime.AddMinutes(1);
+
+
                 // Console.WriteLine(CurrentTime.ToString());
                 TimeHandler?.Invoke(this, new TimeChangedEvent(CurrentTime));
 
@@ -29,11 +31,12 @@ namespace BagageSorteringssystem
             }
         }
 
-        //test threaded
+        //check flights
         public void CheckFlightsThreaded()
         {
             while (IsRunning)
             {
+
                 Monitor.Enter(Manager.flightPlans);
                 try
                 {
@@ -42,9 +45,10 @@ namespace BagageSorteringssystem
                         DateTime arrival = flight.ArrivalTime;
                         //  Console.WriteLine("currentTime: " + CurrentTime.ToString() + " arrival: " + arrival.ToString());
                         // Thread.Sleep(1000);
+                        Debug.WriteLine("currentTime: " + CurrentTime.ToString() + " arrival: " + arrival.ToString() + " flight gate: " + flight.DepartureGate);
                         if (CurrentTime.Day == arrival.Day)
                         {
-                            if (CurrentTime.Hour >= arrival.Hour && CurrentTime.Minute >= arrival.Minute && flight.DepartureGate == null)
+                            if (CurrentTime.Hour >= arrival.Hour && CurrentTime.Minute >= arrival.Minute && flight.Status == "closed")
                             {
                                 //open check in if none are open
                                 if (CheckClosedCheckIns() > 0)
@@ -53,13 +57,9 @@ namespace BagageSorteringssystem
 
                                 }
 
-                                Debug.WriteLine("current day: " + CurrentTime.Day + " arrival day: " + arrival.Day);
-                                Debug.WriteLine("currentTime: " + CurrentTime.ToString() + " arrival: " + arrival.ToString());
-                                Debug.WriteLine("opening for flights!");
+                                //   Debug.WriteLine("current day: " + CurrentTime.Day + " arrival day: " + arrival.Day);
+                                //   Debug.WriteLine("opening for flights!");
                                 OpenGate(flight.IndexNumber);
-
-                                //add flight eventhandler
-                                FlightHandler[flight.IndexNumber]?.Invoke(flight, new FlightPlanEventArgs(flight.IndexNumber));
 
                             }
 
@@ -71,11 +71,11 @@ namespace BagageSorteringssystem
                     }
 
                     //open new check in if too many passengers
-                    if (Manager.ArrivalBuffer.InternalLength == 10 || Manager.ArrivalBuffer.InternalLength == 50)
+                    if (Manager.ArrivalBuffer.InternalLength >= 50 || Manager.ArrivalBuffer.InternalLength == 75)
                     {
-                      /*  Debug.WriteLine("opening new check in");
+                        //  Debug.WriteLine("opening new check in");
                         OpenCheckIn();
-                        Thread.Sleep(1000);*/
+                        Thread.Sleep(1000);
                     }
                 }
                 finally
@@ -83,7 +83,7 @@ namespace BagageSorteringssystem
                     Monitor.Exit(Manager.flightPlans);
                 }
 
-                // Thread.Sleep(2000);
+
             }
 
         }
@@ -102,15 +102,24 @@ namespace BagageSorteringssystem
                     Queue gatebuffer = new Queue(100);
                     Manager.GateBuffers[i] = gatebuffer;
                     Manager.flightPlans[flightIndex].DepartureGate = Manager.gates[i];
-                    AddFlightIndex(flightIndex);
+                    Manager.flightPlans[flightIndex].Status = "arrived";
+                    //  AddFlightIndex(flightIndex);
+                    Manager.AvailableGates++;
                     Debug.WriteLine("opening new Gate");
 
                     //create event
                     Gatehandler[i]?.Invoke(this, new GateEventArgs(Manager.gates[i].NumLuggage, Manager.gates[i].Flight.MaxLuggage, Manager.gates[i].MyStatus, i));
+                    FlightHandler[flightIndex]?.Invoke(Manager.flightPlans[flightIndex], new FlightPlanEventArgs(flightIndex, Manager.gates[i].GateName, "Boarding"));
+
+
 
                     Thread gateThread = new Thread(Manager.gates[i].ConsumeLuggage);
                     gateThread.Start();
-                    //   Console.WriteLine("new flight arrived");
+
+
+
+                    Thread.Sleep(500);
+                    Console.WriteLine("new flight arrived");
                     return;
                 }
             }
@@ -148,19 +157,19 @@ namespace BagageSorteringssystem
             return airLineName;
         }
 
-        void AddFlightIndex(int flightIndex)
-        {
-            Monitor.Enter(Manager.AvailableGates);
-            try
-            {
-                Manager.AvailableGates.Add(flightIndex);
-                Debug.WriteLine("adding available");
-            }
-            finally
-            {
-                Monitor.Exit(Manager.AvailableGates);
-            }
-        }
+        //void AddFlightIndex(int flightIndex)
+        //{
+        //    Monitor.Enter(Manager.AvailableGates);
+        //    try
+        //    {
+        //        Manager.AvailableGates.Add(flightIndex);
+        //        //   Debug.WriteLine("adding available");
+        //    }
+        //    finally
+        //    {
+        //        Monitor.Exit(Manager.AvailableGates);
+        //    }
+        //}
 
         //count how many check ins are available
         int CheckClosedCheckIns()
