@@ -7,121 +7,109 @@ namespace BagageSorteringssystem
 {
     public class Gate
     {
-        private Queue bagagesBuffer;
+       //attributes
         private FlightPlan flight;
         private int indexnumber;
         private int numLuggage;
         private string gatename;
         private int gateIndex;
         private int timeFactor;
+        private Status myStatus;
 
+        //eventhandlers
+        public EventHandler luggageHandler;
+        public EventHandler GateStatusHandler;
+        public EventHandler FlightStatusHandler;
+      
+        //properties
         public int TimeFactor
         {
             get { return timeFactor; }
             set { timeFactor = value; }
         }
-
-        public EventHandler luggageHandler;
-        public EventHandler GateStatusHandler;
-        public EventHandler FlightStatusHandler;
         public int GateIndex
         {
             get { return gateIndex; }
             set { gateIndex = value; }
         }
-
         public string GateName
         {
             get { return gatename; }
             set { gatename = value; }
         }
-
         public int NumLuggage
         {
             get { return numLuggage; }
             set { numLuggage = value; }
         }
-
         public int IndexNumber
         {
             get { return indexnumber; }
             set { indexnumber = value; }
         }
-
         public enum Status { open, closed };
-        private Status myStatus;
-
         public Status MyStatus
         {
             get { return myStatus; }
             set { myStatus = value; }
         }
-
         public FlightPlan Flight
         {
             get { return flight; }
             set { flight = value; }
         }
 
-        public Queue BagagesBuffer
-        {
-            get { return bagagesBuffer; }
-            set { bagagesBuffer = value; }
-        }
-
+        //constructor
         public Gate()
         {
             this.flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
-            bagagesBuffer = new Queue(flight.MaxLuggage);
             this.timeFactor = 1;
         }
 
+        //get current date time
+        DateTime GetCurrentTime()
+        {
+            object timeLock = new object();
+            Monitor.Enter(timeLock);
+            DateTime currentTime;
+            try
+            {
+                currentTime = FlightManager.CurrentTime;
 
+            }
+            finally
+            {
 
-        /*  public void AddToBuffer(Luggage luggage)
-          {
-              Random rand = new Random();
-              while (MyStatus == Status.open)
-              {
-                  Monitor.Enter(bagagesBuffer);
-                  try
-                  {
-                      if (numLuggage < flight.MaxLuggage)
-                      {
-                          bagagesBuffer.Add(luggage);
-                          Console.WriteLine("adding to buffer");
+                Monitor.Exit(timeLock);
+            }
 
-                      }
-
-                  }
-                  finally
-                  {
-                      Monitor.Exit(bagagesBuffer);
-                  }
-                  Thread.Sleep(rand.Next(500, 2000));
-              }
-
-              // Console.WriteLine("this flight has departed");
-          }*/
+            return currentTime;
+        }
+        
 
         //check flight departure
         void CheckDeparture()
         {
-           
-
-            // Console.WriteLine($"current: {FlightManager.CurrentTime} departure: {flight.DepartureTime}");
-         //   Debug.WriteLine("current time: " + FlightManager.CurrentTime + " departure time: " + flight.DepartureTime + " arrival time: " + flight.ArrivalTime);
-            if(FlightManager.CurrentTime.Day == flight.DepartureTime.Day)
+            DateTime curTime = GetCurrentTime();
+            
+            if (curTime.Day == flight.DepartureTime.Day)
             {
-                if (FlightManager.CurrentTime.Hour >= flight.DepartureTime.Hour && FlightManager.CurrentTime.Minute >= flight.DepartureTime.Minute)
+                if (curTime.Hour >= flight.DepartureTime.Hour && curTime.Minute >= flight.DepartureTime.Minute)
                 {
+                    Debug.WriteLine($"current time: {curTime.Hour}:{curTime.Minute} departure time: {flight.DepartureTime.Hour}:{flight.DepartureTime.Minute}");
                     myStatus = Status.closed;
                     ResetGate();
-
+                    Debug.WriteLine("closing gate");
+                    luggageHandler?.Invoke(this, new GateEventArgs(NumLuggage, flight.MaxLuggage, MyStatus, GateIndex));
                 }
             }
-           
+            // Console.WriteLine($"current: {FlightManager.CurrentTime} departure: {flight.DepartureTime}");
+            //   Debug.WriteLine("current time: " + FlightManager.CurrentTime + " departure time: " + flight.DepartureTime + " arrival time: " + flight.ArrivalTime);
+
+              Thread.Sleep(500);
         }
+
+        //remove luggage from buffer and add count
         public void ConsumeLuggage()
         {
             Random rand = new Random();
@@ -141,32 +129,24 @@ namespace BagageSorteringssystem
 
                             luggageHandler?.Invoke(this, new GateEventArgs(NumLuggage, flight.MaxLuggage, MyStatus, GateIndex));
                         }
+
                         //close gate if flight is ready for takeoff
                         CheckDeparture();
-
-
                     }
-
-                    if (numLuggage >= flight.MaxLuggage)
-                    {
-                        myStatus = Status.closed;
-                        ResetGate();
-                    }
-                    int delay = rand.Next(250, 800);
-                   
-                    Thread.Sleep(delay / timeFactor);
-
                 }
                 finally
                 {
                     Monitor.Exit(buffer);
                 }
+
+                int delay = rand.Next(250, 800);
+                Thread.Sleep(delay / timeFactor);
             }
 
+
             //remove index in array
-            //   RemoveGate();
             Manager.AvailableGates -= 1;
-             Thread.Sleep(500);
+            Thread.Sleep(1);
         }
 
         //reset gate to default 
@@ -178,45 +158,5 @@ namespace BagageSorteringssystem
             flight = new FlightPlan(DateTime.Now, DateTime.Now, "xxx", "xxx", 10);
         }
 
-        //remove available gates
-        //void RemoveGate()
-        //{
-        //    Monitor.Enter(Manager.AvailableGates);
-        //    try
-        //    {
-        //        for (int i = 0; i < Manager.gates.Length; i++)
-        //        {
-        //            Monitor.Enter(Manager.gates[i]);
-        //            try
-        //            {
-        //                if (Manager.gates[i].myStatus == Status.closed)
-        //                {
-        //                    for (int j = 0; j < Manager.AvailableGates; j++)
-        //                    {
-        //                        if (Manager.AvailableGates[j] == i)
-        //                        {
-        //                            if (Manager.AvailableGates.Count > 1)
-        //                            {
-        //                                Manager.AvailableGates.RemoveAt(j);
-        //                                break;
-        //                            }
-
-        //                        }
-        //                    }
-        //                }
-
-        //            }
-        //            finally
-        //            {
-        //                Monitor.Exit(Manager.gates[i]);
-        //            }
-
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        Monitor.Exit(Manager.AvailableGates);
-        //    }
-        //}
     }
 }

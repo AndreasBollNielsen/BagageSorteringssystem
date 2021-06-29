@@ -8,64 +8,59 @@ namespace BagageSorteringssystem
 {
     public class FlightPlan
     {
+        //fields
         private DateTime departureTime;
         private DateTime arrivalTime;
         private string status;
-
-        public string Status
-        {
-            get { return status; }
-            set { status = value; }
-        }
-
-        public DateTime ArrivalTime
-        {
-            get { return arrivalTime; }
-            set { arrivalTime = value; }
-        }
-
         private string flightNumber;
         private Gate departureGate;
         private string destination;
         private int maxLuggage;
         private int indexNumber;
 
+        //properties
+        public string Status
+        {
+            get { return status; }
+            set { status = value; }
+        }
+        public DateTime ArrivalTime
+        {
+            get { return arrivalTime; }
+            set { arrivalTime = value; }
+        }
         public int IndexNumber
         {
             get { return indexNumber; }
             set { indexNumber = value; }
         }
-
         public int MaxLuggage
         {
             get { return maxLuggage; }
             set { maxLuggage = value; }
         }
-
         public string Destination
         {
             get { return destination; }
             set { destination = value; }
         }
-
         public Gate DepartureGate
         {
             get { return departureGate; }
             set { departureGate = value; }
         }
-
         public string FlightNumber
         {
             get { return flightNumber; }
             set { flightNumber = value; }
         }
-
         public DateTime DepartureTime
         {
             get { return departureTime; }
             set { departureTime = value; }
         }
 
+        //constructor
         public FlightPlan(DateTime departureTime,DateTime arrivaltime, string flightNumber, string destination, int maxLuggage)
         {
             this.departureTime = departureTime;
@@ -76,6 +71,7 @@ namespace BagageSorteringssystem
             this.status = "closed";
         }
 
+        // get gate based on flightnumber or destination
         public int GetGate(FlightPlan flight,bool statusCheck)
         {
             int gateIndex = -1;
@@ -83,9 +79,10 @@ namespace BagageSorteringssystem
             {
                 if (Manager.gates[i].Flight.FlightNumber == flight.FlightNumber || Manager.gates[i].Flight.destination == flight.destination)
                 {
-                      //   Debug.WriteLine("found id " + i + " flight number " + flight.FlightNumber + " gate status " + Manager.gates[i].MyStatus);
+                     //decision if gate status should be used for condition
                     if(statusCheck)
                     {
+                        //return gate index if gate is open
                         if (Manager.gates[i].MyStatus == Gate.Status.open)
                         {
                             gateIndex = i;
@@ -107,5 +104,6 @@ namespace BagageSorteringssystem
          
             return gateIndex;
         }
+
     }
 }

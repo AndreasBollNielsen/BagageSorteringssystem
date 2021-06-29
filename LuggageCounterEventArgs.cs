@@ -6,14 +6,17 @@ namespace BagageSorteringssystem
 {
     class LuggageCounterEventArgs: EventArgs
     {
+        //fields
         private int luggageCount;
 
+        //properties
         public int LuggageCount
         {
             get { return luggageCount; }
             set { luggageCount = value; }
         }
 
+        //constructor
         public LuggageCounterEventArgs(int luggageCount)
         {
             this.luggageCount = luggageCount;

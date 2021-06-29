@@ -7,24 +7,34 @@ namespace BagageSorteringssystem
 {
     class FlightManager
     {
-
+        //properties & eventhandlers
         public static DateTime CurrentTime = DateTime.Now;
-        public float TimeFactor = 10;
+        public float TimeFactor = 1;
         public EventHandler TimeHandler;
         public EventHandler[] Checkinhandler = new EventHandler[10];
         public EventHandler[] Gatehandler = new EventHandler[10];
         public EventHandler[] FlightHandler = new EventHandler[10];
         public bool IsRunning;
+        object timeLock = new object();
+     
+        //increase current time
         public void RunTime()
         {
             while (IsRunning)
             {
-                CurrentTime = CurrentTime.AddMinutes(1);
+                //increase time by time factor
+                Monitor.Enter(timeLock);
+                try
+                {
+                    CurrentTime = CurrentTime.AddMinutes(1);
+                }
+                finally
+                {
+                    Monitor.Exit(timeLock);
+                }
 
-
-                // Console.WriteLine(CurrentTime.ToString());
+               //add eventhandler
                 TimeHandler?.Invoke(this, new TimeChangedEvent(CurrentTime));
-
 
                 float delay = 1000 / TimeFactor;
                 Thread.Sleep((int)delay);
@@ -40,12 +50,13 @@ namespace BagageSorteringssystem
                 Monitor.Enter(Manager.flightPlans);
                 try
                 {
+                    //loop through flightplans
                     foreach (FlightPlan flight in Manager.flightPlans)
                     {
+                        //get arrival time for flight
                         DateTime arrival = flight.ArrivalTime;
-                        //  Console.WriteLine("currentTime: " + CurrentTime.ToString() + " arrival: " + arrival.ToString());
-                        // Thread.Sleep(1000);
-                        Debug.WriteLine("currentTime: " + CurrentTime.ToString() + " arrival: " + arrival.ToString() + " flight gate: " + flight.DepartureGate);
+
+                        //open gate if new flight has arrived
                         if (CurrentTime.Day == arrival.Day)
                         {
                             if (CurrentTime.Hour >= arrival.Hour && CurrentTime.Minute >= arrival.Minute && flight.Status == "closed")
@@ -57,16 +68,12 @@ namespace BagageSorteringssystem
 
                                 }
 
-                                //   Debug.WriteLine("current day: " + CurrentTime.Day + " arrival day: " + arrival.Day);
-                                //   Debug.WriteLine("opening for flights!");
+                                //open new gate
                                 OpenGate(flight.IndexNumber);
 
                             }
 
                         }
-                        //  Thread.Sleep(1000);
-
-
 
                     }
 
@@ -96,26 +103,46 @@ namespace BagageSorteringssystem
             {
                 if (Manager.gates[i].MyStatus == Gate.Status.closed)
                 {
-                    Manager.gates[i].MyStatus = Gate.Status.open;
-                    Manager.gates[i].Flight = Manager.flightPlans[flightIndex];
-                    Manager.gates[i].GateIndex = i;
-                    Queue gatebuffer = new Queue(100);
-                    Manager.GateBuffers[i] = gatebuffer;
-                    Manager.flightPlans[flightIndex].DepartureGate = Manager.gates[i];
-                    Manager.flightPlans[flightIndex].Status = "arrived";
-                    //  AddFlightIndex(flightIndex);
+                    //set new gate info
+                    Monitor.Enter(Manager.gates[i]);
+                    try
+                    {
+                        Manager.gates[i].MyStatus = Gate.Status.open;
+                        Manager.gates[i].Flight = Manager.flightPlans[flightIndex];
+                        Manager.gates[i].GateIndex = i;
+                        Queue gatebuffer = new Queue(100);
+                        Manager.GateBuffers[i] = gatebuffer;
+                    }
+                    finally
+                    {
+                        Monitor.Exit(Manager.gates[i]);
+                    }
+
+
+                    //set flightplan status
+                    Monitor.Enter(Manager.flightPlans[flightIndex]);
+                    try
+                    {
+                        Manager.flightPlans[flightIndex].DepartureGate = Manager.gates[i];
+                        Manager.flightPlans[flightIndex].Status = "arrived";
+                    }
+                    finally
+                    {
+                        Monitor.Exit(Manager.flightPlans[flightIndex]);
+                    }
+
+
+                    //add to counter
                     Manager.AvailableGates++;
-                    Debug.WriteLine("opening new Gate");
 
                     //create event
                     Gatehandler[i]?.Invoke(this, new GateEventArgs(Manager.gates[i].NumLuggage, Manager.gates[i].Flight.MaxLuggage, Manager.gates[i].MyStatus, i));
                     FlightHandler[flightIndex]?.Invoke(Manager.flightPlans[flightIndex], new FlightPlanEventArgs(flightIndex, Manager.gates[i].GateName, "Boarding"));
 
 
-
+                    //create thread
                     Thread gateThread = new Thread(Manager.gates[i].ConsumeLuggage);
                     gateThread.Start();
-
 
 
                     Thread.Sleep(500);
@@ -130,17 +157,20 @@ namespace BagageSorteringssystem
         {
             for (int i = 0; i < Manager.checkins.Length; i++)
             {
+                //enable new check in
                 if (Manager.checkins[i].MyStatus == Check_In.Status.closed)
                 {
+                    //set airline name & status
                     Manager.checkins[i].MyStatus = Check_In.Status.open;
                     Manager.checkins[i].Name = AirlineGenerator();
-                    Thread checkinThread = new Thread(Manager.checkins[i].CheckLuggage);
 
                     //invoke event
                     Checkinhandler[i]?.Invoke(Manager.checkins[i], new CheckInChangedEventArgs(Manager.checkins[i].Name, Manager.checkins[i].MyStatus, i));
 
+                    //start new thread
+                    Thread checkinThread = new Thread(Manager.checkins[i].CheckLuggage);
                     checkinThread.Start();
-                    Debug.WriteLine("open check-in");
+
                     return;
                 }
             }
@@ -157,49 +187,32 @@ namespace BagageSorteringssystem
             return airLineName;
         }
 
-        //void AddFlightIndex(int flightIndex)
-        //{
-        //    Monitor.Enter(Manager.AvailableGates);
-        //    try
-        //    {
-        //        Manager.AvailableGates.Add(flightIndex);
-        //        //   Debug.WriteLine("adding available");
-        //    }
-        //    finally
-        //    {
-        //        Monitor.Exit(Manager.AvailableGates);
-        //    }
-        //}
-
         //count how many check ins are available
         int CheckClosedCheckIns()
         {
             int counter = 0;
-            Monitor.Enter(Manager.checkins);
-            try
+            for (int i = 0; i < Manager.checkins.Length; i++)
             {
-                for (int i = 0; i < Manager.checkins.Length; i++)
+                if (Manager.checkins[i].MyStatus == Check_In.Status.closed)
                 {
-                    if (Manager.checkins[i].MyStatus == Check_In.Status.closed)
-                    {
-                        counter++;
-                    }
-                    else
-                    {
-                        counter = 0;
-                        break;
-                    }
+                    counter++;
+                }
+                else
+                {
+                    counter = 0;
+                    break;
                 }
             }
-            finally
-            {
-                Monitor.Exit(Manager.checkins);
-            }
 
+            /* Monitor.Enter(Manager.checkins);
+             try
+             {
+             }
+             finally
+             {
+                 Monitor.Exit(Manager.checkins);
+             }*/
 
-
-            // Console.WriteLine(counter);
-            //  Thread.Sleep(10000);
             return counter;
         }
     }

@@ -8,19 +8,52 @@ namespace BagageSorteringssystem
 {
     class Sorter
     {
+        //fields
         private Queue bagagesBuffer;
 
-
+        //properties
         public Queue BagagesBuffer
         {
             get { return bagagesBuffer; }
             set { bagagesBuffer = value; }
         }
 
+        //constructor
         public Sorter()
         {
 
             bagagesBuffer = new Queue(10);
+        }
+
+        //sort luggage from buffer
+        public void SortLuggage()
+        {
+            Random rand = new Random();
+            while (true)
+            {
+                //random choose which buffer to take from
+                int chooser = rand.Next(2);
+
+                // if returnbuffer is empty don´t use it
+                if (!checkReturnbuffer())
+                {
+                    chooser = 1;
+                }
+
+                //sort luggage from checkin buffer
+                if (chooser > 0)
+                {
+                    SortByGate();
+                }
+                //sort from return buffer
+                else
+                {
+                    SortByReturn();
+                }
+
+                
+                Thread.Sleep(rand.Next(10, 60));
+            }
         }
 
         //add luggage to return buffer
@@ -37,36 +70,6 @@ namespace BagageSorteringssystem
             }
         }
 
-        public void SortLuggage()
-        {
-            Random rand = new Random();
-            while (true)
-            {
-                //random choose which buffer to take from
-                int chooser = rand.Next(2);
-
-                // if returnbuffer is empty don´t use it
-                if (!checkReturnbuffer())
-                {
-                    chooser = 1;
-                }
-
-                if (chooser > 0)
-                {
-                    SortByGate();
-                    //Debug.WriteLine("sorting by gate");
-                }
-                //sort from return buffers
-                else
-                {
-                    SortByReturn();
-                    //Debug.WriteLine("sorting by return buffer");
-                }
-
-
-                Thread.Sleep(rand.Next(10, 60));
-            }
-        }
 
         //check if returnbuffer contains content
         bool checkReturnbuffer()
@@ -87,6 +90,7 @@ namespace BagageSorteringssystem
             return false;
         }
 
+        //sort luggage to an open gate or return buffer
         void SortByGate()
         {
             //sort from Check in buffers
@@ -95,12 +99,6 @@ namespace BagageSorteringssystem
             {
                 if (Manager.CheckInBuffer.InternalLength > 0)
                 {
-                    //old code not doing anything...
-                    if (bagagesBuffer.InternalLength < bagagesBuffer.Length)
-                    {
-
-                    }
-
                     //get the luggage from checkin buffer
                     Luggage luggage = Manager.CheckInBuffer.Remove();
                     int index = luggage.Flight.GetGate(luggage.Flight, true);
@@ -119,24 +117,21 @@ namespace BagageSorteringssystem
                                 try
                                 {
                                     Manager.GateBuffers[index].Add(luggage);
-
                                 }
                                 finally
                                 {
                                     Monitor.Exit(Manager.GateBuffers[index]);
                                 }
                             }
-
                         }
                         finally
                         {
-
                             Monitor.Exit(Manager.gates[index]);
                         }
                     }
                     else
                     {
-                        // Debug.WriteLine("index was not valid");
+                       //add luggage to return buffer
                         AddToReturnBuffer(luggage);
                     }
                 }
@@ -147,6 +142,7 @@ namespace BagageSorteringssystem
             }
         }
 
+        //sort luggage from return buffer to an open gate
         void SortByReturn()
         {
             Monitor.Enter(Manager.ReturnBuffer);
@@ -197,7 +193,6 @@ namespace BagageSorteringssystem
                         //Debug.WriteLine("no gates available");
                         Manager.ReturnBuffer.Add(luggage);
                     }
-
                 }
             }
             finally

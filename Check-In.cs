@@ -7,31 +7,29 @@ namespace BagageSorteringssystem
 {
     class Check_In
     {
+        //fields
         public enum Status { open, closed };
         private string name;
         private Gate departureGate;
         private Status myStatus;
         private int timeFactor;
 
+        //properties
         public int TimeFactor
         {
             get { return timeFactor; }
             set { timeFactor = value; }
         }
-
-
         public Gate DepartureGate
         {
             get { return departureGate; }
             set { departureGate = value; }
         }
-
         public string Name
         {
             get { return name; }
             set { name = value; }
         }
-
         public Status MyStatus
         {
             get { return myStatus; }
@@ -42,6 +40,8 @@ namespace BagageSorteringssystem
             }
         }
 
+
+        //constructor
         public Check_In(string name)
         {
             Name = name;
@@ -75,7 +75,7 @@ namespace BagageSorteringssystem
                         if (Manager.CheckInBuffer.InternalLength < Manager.CheckInBuffer.Length)
                         {
                             Manager.CheckInBuffer.Add(luggage);
-                            Debug.WriteLine("adding luggage");
+                            //Debug.WriteLine("adding luggage");
                         }
                     }
                     finally
@@ -100,6 +100,7 @@ namespace BagageSorteringssystem
 
         }
 
+        //get gate based on flightplan
         public int Getgate(FlightPlan flight)
         {
             int gateIndex = 0;

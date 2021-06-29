@@ -8,23 +8,32 @@ namespace BagageSorteringssystem
 {
     class Manager
     {
+        //shared resources
         public static Queue ArrivalBuffer = new Queue(100);
         public static Queue CheckInBuffer = new Queue(1000);
         public static Queue ReturnBuffer = new Queue(1000);
         public static Queue[] GateBuffers = new Queue[10];
-       // public static List<int> AvailableGates = new List<int>();
         public static Gate[] gates = new Gate[10];
         public static FlightPlan[] flightPlans = new FlightPlan[10];
         public static Check_In[] checkins = new Check_In[10];
         public static int AvailableGates;
+       
+        //flight manager
         public FlightManager flightMan = new FlightManager();
+
+        //producer & consumers
         public LuggageProducer luggageProducer = new LuggageProducer();
         public Sorter sorter = new Sorter();
+       
+        //properties
         int lastDest;
         public bool Isrunning;
         public bool WPFRunning;
+
+        //eventhandler for initialization
         public EventHandler InitializationHandler;
 
+        //setup Data & managers & start threads
         public void Initialize()
         {
             //instantiate flightplans
@@ -70,7 +79,7 @@ namespace BagageSorteringssystem
             }
 
 
-
+            //enable flightmanager
             flightMan.IsRunning = true;
 
             //send empty event 
@@ -82,6 +91,7 @@ namespace BagageSorteringssystem
             Thread RuntimeThread = new Thread(flightMan.RunTime);
             Thread flightCheckThread = new Thread(flightMan.CheckFlightsThreaded);
 
+            //start threads
             RuntimeThread.Start();
             flightCheckThread.Start();
             luggageThread.Start();
@@ -98,6 +108,7 @@ namespace BagageSorteringssystem
             //initialize time factor
             UpdateLocalTimeFactor();
 
+            // console output when not using WPF
             if (!WPFRunning)
             {
                 ConsoleManager printer = new ConsoleManager();
@@ -107,31 +118,31 @@ namespace BagageSorteringssystem
                     printer.PrintData();
                     //  Console.Clear();
                     Thread.Sleep(1000);
-
                 }
             }
-
 
         }
 
         //Generates a new flight
         FlightPlan FlightGenerator()
         {
+            //random object
             Random randNum = new Random();
+            double minutes = randNum.Next(1, 10);
 
 
-
-            DateTime depart = DateTime.Now.AddHours(randNum.Next(2, 12));
+           //set arrival & departure time
+            DateTime depart = DateTime.Now.Add(new TimeSpan(randNum.Next(2, 12), randNum.Next(1, 60),0));
             DateTime arrival = depart.AddHours(-2);
+            
+            //create random flight info
             string destination = DestinationGenerator();
             string flightNumber = destination[0] + randNum.Next(1000, 10000).ToString();
             int maxLuggage = randNum.Next(10, 100);
 
-
+            //create new flight based on data
             FlightPlan flight = new FlightPlan(depart, arrival, flightNumber, destination, maxLuggage);
             return flight;
-
-
         }
 
         //Generate a new gate name
@@ -174,29 +185,15 @@ namespace BagageSorteringssystem
                     checkins[i].TimeFactor = (int)flightMan.TimeFactor;
 
                 }
-                /*  Monitor.Enter(checkins);
-                  try
-                  {
-                  }
-                  catch (Exception)
-                  {
-                      Monitor.Exit(checkins);
-                  }*/
+                
 
                 //   update gates time factor
                 for (int i = 0; i < gates.Length; i++)
                 {
                     gates[i].TimeFactor = (int)flightMan.TimeFactor;
                 }
-                /* Monitor.Enter(gates);
-                 try
-                 {
-                 }
-                 finally
-                 {
-                     Monitor.Exit(gates);
-                 }*/
-
+              
+                //update luggage producer time factor
                 luggageProducer.TimeFactor = (int)flightMan.TimeFactor;
             }
 
