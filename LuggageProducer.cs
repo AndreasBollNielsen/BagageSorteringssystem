@@ -55,7 +55,7 @@ namespace BagageSorteringssystem
         }
 
         //generate new  luggage
-        public Luggage GenerateLuggage()
+        Luggage GenerateLuggage()
         {
             //initialize random number, just for sanity check ;)
             Random rand = new Random();
@@ -64,7 +64,7 @@ namespace BagageSorteringssystem
             //get array of flight indexes closest to current time
             int[] flights = GetClosestFlightplan();
 
-            
+
             //select random flight index from array
             if (flights.Length > 0)
             {
@@ -100,7 +100,7 @@ namespace BagageSorteringssystem
                         Luggage luggage = GenerateLuggage();
                         Manager.ArrivalBuffer.Add(luggage);
                         luggagecount = Manager.ArrivalBuffer.InternalLength;
-                        
+
                         //invoke event
                         LuggageChanged?.Invoke(this, new LuggageCounterEventArgs(luggagecount));
                     }

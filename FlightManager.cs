@@ -42,7 +42,7 @@ namespace BagageSorteringssystem
         }
 
         //check flights
-        public void CheckFlightsThreaded()
+        public void CheckFlights()
         {
             while (IsRunning)
             {

@@ -19,11 +19,11 @@ namespace BagageSorteringssystem
         public static int AvailableGates;
        
         //flight manager
-        public FlightManager flightMan = new FlightManager();
+        public FlightManager FlightMan = new FlightManager();
 
         //producer & consumers
-        public LuggageProducer luggageProducer = new LuggageProducer();
-        public Sorter sorter = new Sorter();
+        public LuggageProducer LuggageProducer = new LuggageProducer();
+        public Sorter Sorter = new Sorter();
        
         //properties
         int lastDest;
@@ -80,16 +80,16 @@ namespace BagageSorteringssystem
 
 
             //enable flightmanager
-            flightMan.IsRunning = true;
+            FlightMan.IsRunning = true;
 
             //send empty event 
             InitializationHandler?.Invoke(this, new EventArgs());
 
             //initialize threads
-            Thread luggageThread = new Thread(luggageProducer.AddToBuffer);
-            Thread SorterThread = new Thread(sorter.SortLuggage);
-            Thread RuntimeThread = new Thread(flightMan.RunTime);
-            Thread flightCheckThread = new Thread(flightMan.CheckFlightsThreaded);
+            Thread luggageThread = new Thread(LuggageProducer.AddToBuffer);
+            Thread SorterThread = new Thread(Sorter.SortLuggage);
+            Thread RuntimeThread = new Thread(FlightMan.RunTime);
+            Thread flightCheckThread = new Thread(FlightMan.CheckFlights);
 
             //start threads
             RuntimeThread.Start();
@@ -182,7 +182,7 @@ namespace BagageSorteringssystem
                 //update checkins time factor
                 for (int i = 0; i < checkins.Length; i++)
                 {
-                    checkins[i].TimeFactor = (int)flightMan.TimeFactor;
+                    checkins[i].TimeFactor = (int)FlightMan.TimeFactor;
 
                 }
                 
@@ -190,11 +190,11 @@ namespace BagageSorteringssystem
                 //   update gates time factor
                 for (int i = 0; i < gates.Length; i++)
                 {
-                    gates[i].TimeFactor = (int)flightMan.TimeFactor;
+                    gates[i].TimeFactor = (int)FlightMan.TimeFactor;
                 }
               
                 //update luggage producer time factor
-                luggageProducer.TimeFactor = (int)flightMan.TimeFactor;
+                LuggageProducer.TimeFactor = (int)FlightMan.TimeFactor;
             }
 
         }
